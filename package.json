@@ -1,0 +1,11 @@
+{
+  "name": "RL-tracker-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for managing in-server RL Tournaments",
+  "main": "bot.js",
+  "author": "Magikarp",
+  "dependencies": {
+    "discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6",
+    "winston": "^3.2.1"
+  }
+}
