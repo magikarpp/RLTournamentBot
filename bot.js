@@ -19,12 +19,18 @@ bot.on("ready", function (evt) {
 });
 
 // Initialize variables: admins, playerUsername, playerPoints
-// Change tournamentName and admins for each tournament
-// Magikarp: 122099645919789056
+// For each tournament, change tournamentName, teamSize, and (maybe) admins
+// Magikarp: 122099645919789056, Axxxx: 482996996203085855, Ninja: 412703274165207041, Shadow: 267757061201199104, Alley: 461702728926625832
+// var admins = [122099645919789056, 482996996203085855, 412703274165207041, 267757061201199104, 461702728926625832];
 var admins = [122099645919789056];
 var tournamentName = "Rocket League Switch Showdown!";
+var teamSize = 3;
 var playerUsername = [];
 var playerPoints = [];
+var tstatus = "Open Registration";
+var teams = [];
+var noTeams = [];
+var teamMatchUp = [[]];
 
 bot.on("message", function (user, userID, channelID, message, evt) {
     // Bot will listen for messages that will start with "!"
@@ -35,26 +41,44 @@ bot.on("message", function (user, userID, channelID, message, evt) {
         var input2 = args[2];
 
         switch(cmd) {
+            case "add":
+                for(i = 0; i < 10; i++){
+                  playerUsername[i] = "Player " + i;
+                  playerPoints[playerUsername[i]] = 0;
+                }
+
+                break;
+
             // Display all commands
             case "commands":
                 bot.sendMessage({
                     to: channelID,
-                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo add a point for yourself: !plus\nTo subtract a point from yourself (in case of a mistake): !minus\n\nAdmin Commands:\nSet a players point: !set _userName_ _Integer_"
+                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo check the current teams: !teams-status\nTo self-record a team win: !team-win\n\nAdmin Commands:\nSet a players point: !set _userName_ _Integer_\nTo start a tournament: !tournament-start\nTo create new match-ups: !new-matchups\nTo delete a participant: !delete _userName_"
                 });
                 break;
             // Create a new user for the tournament
             case "user-create":
-                if(playerUsername[userID] == null){
-                    playerUsername[userID] = input1;
-                    playerPoints[userID] = 0;
-                    bot.sendMessage({
-                        to: channelID,
-                        message: "New Participant has joined the tournament!" + "\nYou are: " + playerUsername[userID] + "\nYou currently have " + playerPoints[userID] + " point(s)"
-                    });
-                } else{
+                if(playerUsername[userID] != null){
                     bot.sendMessage({
                         to: channelID,
                         message: "You are already a participant of this tournament. Please use \"!user\" to display your current status."
+                    });
+                } else if(input1 in playerUsername){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Username already taken. Please create a user with a different username."
+                    });
+                } else if(input1 == null || input1 == "" || input1 == undefined){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Not a valid username. Please create a user with a valid username."
+                    });
+                }else{
+                    playerUsername[userID] = input1;
+                    playerPoints[playerUsername[userID]] = 0;
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "New Participant has joined the tournament!" + "\nYou are: " + playerUsername[userID] + "\nYou currently have " + playerPoints[playerUsername[userID]] + " point(s)"
                     });
                 }
 
@@ -64,7 +88,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                 if(playerUsername[userID] != null){
                     bot.sendMessage({
                         to: channelID,
-                        message: "You are: " + playerUsername[userID] + "\nYou currently have " + playerPoints[userID] + " point(s)"
+                        message: "You are: " + playerUsername[userID] + "\nYou currently have " + playerPoints[playerUsername[userID]] + " point(s)"
                     });
                 } else{
                     bot.sendMessage({
@@ -78,34 +102,36 @@ bot.on("message", function (user, userID, channelID, message, evt) {
             case "tournament-status":
                 var statusStr = "";
                 for(i = 0; i < Object.size(playerUsername); i++){
-                    statusStr += "\n" + Object.values(playerUsername)[i] + ": " + playerPoints[Object.keys(playerUsername)[i]];
+                    statusStr += "\n" + Object.values(playerUsername)[i] + ": " + playerPoints[Object.values(playerUsername)[i]];
                 }
 
                 bot.sendMessage({
                     to: channelID,
-                    message: tournamentName + "\nTotal Players in Tournament " + Object.size(playerUsername) + "\n\nStandings:" + statusStr
+                    message: tournamentName + "\nStatus: " + tstatus + "\nTotal Players in Tournament: " + Object.size(playerUsername) + "\n\nStandings:" + statusStr
                 });
                 break;
-            // Add point to current user
-            case "plus":
-                playerPoints[userID] += 1;
-                bot.sendMessage({
-                    to: channelID,
-                    message: "You have gained a point! Your current point(s): " + playerPoints[userID]
-                });
-                break;
-            // Subtrack point to current user
-            case "minus":
-                playerPoints[userID] -= 1;
-                if(playerPoints[userID] < 0){
-                    playerPoints[userID] = 0;
-                }
 
-                bot.sendMessage({
-                    to: channelID,
-                    message: "You lost a point (wut). Your current point(s): " + playerPoints[userID]
-                });
-                break;
+            // // Add point to current user
+            // case "plus":
+            //     playerPoints[userID] += 1;
+            //     bot.sendMessage({
+            //         to: channelID,
+            //         message: "You have gained a point! Your current point(s): " + playerPoints[userID]
+            //     });
+            //     break;
+            // // Subtrack point to current user
+            // case "minus":
+            //     playerPoints[userID] -= 1;
+            //     if(playerPoints[userID] < 0){
+            //         playerPoints[userID] = 0;
+            //     }
+            //
+            //     bot.sendMessage({
+            //         to: channelID,
+            //         message: "You lost a point (wut). Your current point(s): " + playerPoints[userID]
+            //     });
+            //     break;
+
             // Admin Command: set a users point to value
             case "set":
                 if(!isAdmin(userID)){
@@ -121,21 +147,162 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                 } else{
                     for(i = 0; i < Object.size(playerUsername); i++){
                         if(Object.values(playerUsername)[i] == input1){
-                            playerPoints[Object.keys(playerUsername)[i]] = input2;
+                            playerPoints[Object.values(playerUsername)[i]] = input2;
                             bot.sendMessage({
                                 to: channelID,
-                                message: Object.values(playerUsername)[i] + "'s points have been set to " + playerPoints[Object.keys(playerUsername)[i]]
+                                message: Object.values(playerUsername)[i] + "'s points have been set to " + playerPoints[Object.values(playerUsername)[i]]
                             });
                         }
                     }
                 }
                 break;
+
+            // Display User-ID: mainly used for adding new admins.
             case "user-id":
                 bot.sendMessage({
                     to: channelID,
                     message: userID
                 });
                 break;
+
+            // Start tournament: craetes teams into array teams;
+            case "tournament-start":
+                if(!isAdmin(userID)){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "You do not have permission to use this command."
+                    });
+                } else if (tstatus == "active"){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Tournament is already active."
+                    });
+                } else{
+                    tstatus = "active";
+                    noTeams = Object.values(playerUsername);
+                    createTeams();
+                    createMatchUp();
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Tournament has started!!\n\nHere are your teams (use \"!teams\" to see up-to-date teams):\n" + displayTeams()
+                    });
+                }
+                break;
+            case "teams-status":
+                bot.sendMessage({
+                    to: channelID,
+                    message: "Current Teams:\n" + displayTeams()
+                });
+                break;
+            case "team-win":
+                for(i = 0; i < teamMatchUp.length; i++){
+                    for(j = 0; j < teamSize; j++){
+                        if(teamMatchUp[i][0][j] == playerUsername[userID]){
+                            var str = "";
+                            for(k = 0; k < teamSize; k++){
+                              str += teamMatchUp[i][0][k] + ", ";
+                              playerPoints[teamMatchUp[i][0][k]] += 1;
+                            }
+                            bot.sendMessage({
+                                to: channelID,
+                                message: "Players " + str + "received 1 point.\nPlease wait for new match-ups to be assigned."
+                            });
+
+                            for(k = 0; k < teamSize; k++){
+                              noTeams.push(teamMatchUp[i][1][k]);
+                            }
+                            teamMatchUp[i][1] = [];
+                        }
+                        if(teamMatchUp[i][1][j] == playerUsername[userID]){
+                            var str = "";
+                            for(k = 0; k < teamSize; k++){
+                              str += teamMatchUp[i][1][k] + ", ";
+                              playerPoints[teamMatchUp[i][1][k]] += 1;
+                            }
+                            bot.sendMessage({
+                                to: channelID,
+                                message: "Players " + str + "received 1 point.\nPlease wait for new match-ups to be assigned."
+                            });
+
+                            for(k = 0; k < teamSize; k++){
+                              noTeams.push(teamMatchUp[i][0][k]);
+                            }
+                            teamMatchUp[i][0] = [];
+                        }
+                    }
+                }
+                break;
+                case "new-matchups":
+                    if(!isAdmin(userID)){
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "You do not have permission to use this command."
+                        });
+                    } else{
+                      createMatchUp();
+                      bot.sendMessage({
+                          to: channelID,
+                          message: "New Match-Ups have been created:\n" + displayTeams()
+                      });
+                    }
+                    break;
+                case "delete":
+                    var isPlaying = false;
+                    var doesExist = false;
+                    if(teamMatchUp[0][0] != null){
+                        for(i = 0; i < teamMatchUp.length; i++){
+                            for(j = 0; j < teamSize; j++){
+                                if(teamMatchUp[i][0][j] == input1 || teamMatchUp[i][1][j] == input1){
+                                    isPlaying = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if(playerUsername[input1] == null){
+                        doesExist = true;
+                    }
+
+                    if(!isAdmin(userID)){
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "You do not have permission to use this command."
+                        });
+                    } else if(input1 == null){
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "Incorrect input. Please use !delete _userName_"
+                        });
+                    } else if(!doesExist){
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "Unable to delete: " + input1 + " user does not exist in this tournament."
+                        });
+                    } else if(isPlaying){
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "Cannot delete a user while in a match."
+                        });
+                    } else{
+                        var playerKey;
+                        for(i = 0; i < Object.size(playerUsername); i++){
+                          if(input1 == Object.values(playerUsername)[i]){
+                            playerKey = Object.keys(playerUsername)[i];
+                          }
+                        }
+                        delete playerUsername[playerKey];
+                        delete playerPoints[input1];
+                        if(input1 in noTeams){
+                            var index = noTeams.indexOf(input1);
+                            if (index > -1){
+                              noTeams.splice(index, 1);
+                            }
+                        }
+                        bot.sendMessage({
+                            to: channelID,
+                            message: input1 + " has been deleted."
+                        });
+                    }
          }
      }
 });
@@ -147,6 +314,49 @@ function isAdmin(userID){
     }
   }
   return false;
+}
+
+function displayTeams(){
+  var str = "";
+  for(i = 0; i < teamMatchUp.length; i++){
+    str += "[" + teamMatchUp[i][0] + "]" + "  vs  " + "[" + teamMatchUp[i][1] + "]\n"
+  }
+
+  str += "\nBye-Round Players: "
+  for(i = 0; i < noTeams.length; i++){
+    str += "\n" + noTeams[i];
+  }
+  return str;
+}
+
+function createMatchUp(){
+  var counter = 0;
+  teamMatchUp = [[]];
+  for(i = 0; i < teams.length; i++){
+    if(i % 2 == 0){
+      teamMatchUp[i - counter][0] = teams[i];
+      teamMatchUp[i - counter][1] = teams[i+1];
+    } else{
+      counter++;
+    }
+  }
+}
+
+// TODO :: Change "teamSize" based on 1vs1s, 2s, or 3s tournament.
+
+function createTeams(){
+
+  shuffTeams = shuffle(noTeams);
+  while(noTeams.length >= teamSize){
+    var team = noTeams.splice(-teamSize);
+    teams.push(team);
+  }
+  if(teams.length % 2 != 0){
+    var leftOvers = teams.pop();
+    for(i = 0; i < leftOvers.length; i++){
+      noTeams.push(leftOvers[i]);
+    }
+  }
 }
 
 // Fisher-Yates Shuffle Method
