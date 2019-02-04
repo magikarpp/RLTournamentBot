@@ -41,7 +41,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
         var input2 = args[2];
 
         switch(cmd) {
-            case "add":
+            case "make":
                   for(i = 0; i < 16; i++){
                     playerUsername[i] = "Player " + i;
                     playerPoints[playerUsername[i]] = 0;
@@ -52,7 +52,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
             case "commands":
                 bot.sendMessage({
                     to: channelID,
-                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo check the current teams: !team-status\nTo self-record a team win: !team-win\n\nAdmin Commands:\nSet a players point: !set _username_ _integer_\nTo start a tournament: !tournament-start\nTo create new match-ups: !new-games\nTo delete a participant: !delete _username_\nTo disband a team: !disband _teamRow_ _teamColumn_"
+                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo check the current teams: !team-status\nTo self-record a team win: !team-win\n\nAdmin Commands:\nSet a players point: !set _username_ _integer_\nTo start a tournament: !tournament-start\nTo create new match-ups: !new-games\nTo delete a participant: !delete _username_\nTo disband a team: !disband _teamRow_ _teamColumn_\nAdd a user to an active tournament: !add _username_"
                 });
                 break;
             // Create a new user for the tournament
@@ -209,8 +209,6 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                             if (index > -1) {
                                 teams.splice(index, 1);
                             }
-                            console.log("\nTeams after win");
-                            console.log(teams)
                             for(k = 0; k < teamSize; k++){
                               noTeams.push(teamMatchUp[i][1][k]);
                             }
@@ -231,8 +229,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                             if (index > -1) {
                                 teams.splice(index, 1);
                             }
-                            console.log("\nTeams after win");
-                            console.log(teams)
+
                             for(k = 0; k < teamSize; k++){
                               noTeams.push(teamMatchUp[i][0][k]);
                             }
@@ -249,7 +246,6 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                         message: "You do not have permission to use this command."
                     });
                 } else{
-                  console.log("----new games are created----")
                   createMatchUp();
                   bot.sendMessage({
                       to: channelID,
@@ -337,8 +333,6 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                     if (index > -1) {
                         teams.splice(index, 1);
                     }
-                    console.log("\nTeams after disband");
-                    console.log(teams)
 
                     for(i = 0; i < teamSize; i++){
                         noTeams.push(teamMatchUp[input1][input2][i]);
@@ -350,7 +344,34 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                     });
                 }
                 break;
-
+            case "add":
+                if(!isAdmin(userID)){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "You do not have permission to use this command."
+                    });
+                } else if(tstatus != "Active"){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "There is no active tournament to add user to."
+                    });
+                } else if(input1 == null || input1 == undefined){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Please use the command !add _username_ to add a user to the tournament."
+                    });
+                } else if(!Object.values(playerUsername).includes(input1)){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: input1 + " does not exist as a user. Please use !add _username_ to add a user to the tournament."
+                    });
+                } else{
+                    noTeams.push(input1);
+                    bot.sendMessage({
+                        to: channelID,
+                        message: input1 + " has been added to the tournament."
+                    });
+                }
             }
         }
 });
@@ -386,13 +407,10 @@ function createMatchUp(){
       teamMatchUp.push([0, 0]);
       teamMatchUp[i][0] = teams[i*2];
       teamMatchUp[i][1] = teams[i*2 + 1];
-      console.log("...");
-      console.log(teamMatchUp);
   }
 }
 
 function createTeams(){
-  console.log("Creating Teams....")
   shuffTeams = shuffle(noTeams);
 
   while(noTeams.length >= teamSize){
@@ -406,10 +424,6 @@ function createTeams(){
       noTeams.push(leftOvers[i]);
     }
   }
-  console.log("\nTeams\n");
-  console.log(teams);
-  console.log("\nLeftOvers\n");
-  console.log(noTeams);
 }
 
 // Fisher-Yates Shuffle Method
