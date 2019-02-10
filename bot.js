@@ -21,16 +21,16 @@ bot.on("ready", function (evt) {
 // Initialize variables: admins, playerUsername, playerPoints
 // For each tournament, change tournamentName, teamSize, and (maybe) admins
 // Magikarp: 122099645919789056, Axxxx: 482996996203085855, Ninja: 412703274165207041, Shadow: 267757061201199104, Alley: 461702728926625832
-// var admins = [122099645919789056, 482996996203085855, 412703274165207041, 267757061201199104, 461702728926625832];
-var admins = [122099645919789056];
+var admins = [122099645919789056, 412703274165207041];
 var tournamentName = "Rocket League Switch Showdown!";
 var teamSize = 3;
 var playerUsername = [];
 var playerPoints = [];
 var tstatus = "Open Registration";
 var teams = [];
-var noTeams = [];
+var playerPool = [];
 var teamMatchUp = [];
+var inactive = [];
 
 bot.on("message", function (user, userID, channelID, message, evt) {
     // Bot will listen for messages that will start with "!"
@@ -39,11 +39,12 @@ bot.on("message", function (user, userID, channelID, message, evt) {
         var cmd = args[0];
         var input1 = args[1];
         var input2 = args[2];
+        var input3 = args[3];
 
         switch(cmd) {
             case "make":
-                  for(i = 0; i < 16; i++){
-                    playerUsername[i] = "Player " + i;
+                  for(i = 0; i < 28; i++){
+                    playerUsername[i] = "Player" + i;
                     playerPoints[playerUsername[i]] = 0;
                   }
 
@@ -52,7 +53,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
             case "commands":
                 bot.sendMessage({
                     to: channelID,
-                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo check the current teams: !team-status\nTo self-record a team win: !team-win\n\nAdmin Commands:\nSet a players point: !set _username_ _integer_\nTo start a tournament: !tournament-start\nTo create new match-ups: !new-games\nTo delete a participant: !delete _username_\nTo disband a team: !disband _teamRow_ _teamColumn_\nAdd a user to an active tournament: !add _username_"
+                    message: "To open this help menu: !commands\nTo participate in the tournament, please create a user using: !user-create _yourUsername_\nTo check your own status: !user\nTo check the status of the tournament: !tournament-status\nTo check the current teams: !team-status\nTo self-record a team win: !team-win\n\nAdmin Commands:\nSet a players point: !set _username_ _integer_\nTo start a tournament: !tournament-start\nTo create new match-ups: !new-games\nTo delete a participant: !delete _username_\nTo disband a team: !disband _teamRow_ _teamColumn_\nAdd a user to an active tournament: !add _username_\nMark player as inactive/active: !inactive/!active _username_\n"
                 });
                 break;
             // Create a new user for the tournament
@@ -100,8 +101,11 @@ bot.on("message", function (user, userID, channelID, message, evt) {
             // Check tournament status
             case "tournament-status":
                 var statusStr = "";
+                // Sorting does not work yet
+                var sortedArray = sortPoints();
                 for(i = 0; i < Object.size(playerUsername); i++){
-                    statusStr += "\n" + Object.values(playerUsername)[i] + ": " + playerPoints[Object.values(playerUsername)[i]];
+                    var sortedPlayer = sortedArray[i];
+                    statusStr += "\n" + sortedPlayer + ": " + playerPoints[sortedPlayer];
                 }
 
                 bot.sendMessage({
@@ -178,7 +182,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                     });
                 } else{
                     tstatus = "Active";
-                    noTeams = Object.values(playerUsername);
+                    playerPool = Object.values(playerUsername);
                     createMatchUp();
                     bot.sendMessage({
                         to: channelID,
@@ -210,7 +214,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                                 teams.splice(index, 1);
                             }
                             for(k = 0; k < teamSize; k++){
-                              noTeams.push(teamMatchUp[i][1][k]);
+                              playerPool.push(teamMatchUp[i][1][k]);
                             }
                             teamMatchUp[i][1] = [];
                         }
@@ -231,7 +235,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                             }
 
                             for(k = 0; k < teamSize; k++){
-                              noTeams.push(teamMatchUp[i][0][k]);
+                              playerPool.push(teamMatchUp[i][0][k]);
                             }
                             teamMatchUp[i][0] = [];
                         }
@@ -292,20 +296,21 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                         message: "Cannot delete a user while in a match."
                     });
                 } else{
+                    if(playerPool.indexOf(input1) >= 0){
+                      var index = playerPool.indexOf(input1);
+                      if (index > -1){
+                        playerPool.splice(index, 1);
+                      }
+                    }
                     var playerKey;
                     for(i = 0; i < Object.size(playerUsername); i++){
-                      if(input1 == Object.values(playerUsername)[i]){
-                        playerKey = Object.keys(playerUsername)[i];
-                      }
+                        if(input1 == Object.values(playerUsername)[i]){
+                            playerKey = Object.keys(playerUsername)[i];
+                        }
                     }
                     delete playerUsername[playerKey];
                     delete playerPoints[input1];
-                    if(input1 in noTeams){
-                        var index = noTeams.indexOf(input1);
-                        if (index > -1){
-                          noTeams.splice(index, 1);
-                        }
-                    }
+
                     bot.sendMessage({
                         to: channelID,
                         message: input1 + " has been deleted."
@@ -318,7 +323,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                         to: channelID,
                         message: "You do not have permission to use this command."
                     });
-                } else if(input1 == null || input1 == undefined || input1 == "" || input2 == null || input2 == undefined || input2 == "" || input1 > teamMatchUp.length || input1 < 0 || input2 > 1 || input2 < 0){
+                } else if(input1 == null || input1 == undefined || input1 == "" || input2 == null || input2 == undefined || input2 == "" || input1 >= teamMatchUp.length || input1 < 0 || input2 > 1 || input2 < 0){
                     bot.sendMessage({
                         to: channelID,
                         message: "Please use the correct format: !disband _teamRow_ _teamColumn_"
@@ -335,7 +340,7 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                     }
 
                     for(i = 0; i < teamSize; i++){
-                        noTeams.push(teamMatchUp[input1][input2][i]);
+                        playerPool.push(teamMatchUp[input1][input2][i]);
                     }
                     teamMatchUp[input1][input2] = [];
                     bot.sendMessage({
@@ -366,12 +371,104 @@ bot.on("message", function (user, userID, channelID, message, evt) {
                         message: input1 + " does not exist as a user. Please use !add _username_ to add a user to the tournament."
                     });
                 } else{
-                    noTeams.push(input1);
+                    playerPool.push(input1);
                     bot.sendMessage({
                         to: channelID,
                         message: input1 + " has been added to the tournament."
                     });
                 }
+                break;
+            case "inactive":
+                var isPlaying = false;
+                var doesExist = false;
+                if(teamMatchUp[0][0] != null){
+                    for(i = 0; i < teamMatchUp.length; i++){
+                        for(j = 0; j < teamSize; j++){
+                            if(teamMatchUp[i][0][j] == input1 || teamMatchUp[i][1][j] == input1){
+                                isPlaying = true;
+                            }
+                        }
+                    }
+                }
+
+                if(playerUsername[input1] == null){
+                    doesExist = true;
+                }
+
+                if(!isAdmin(userID)){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "You do not have permission to use this command."
+                    });
+                } else if(input1 == null){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Incorrect input. Please use !inactive _username_"
+                    });
+                } else if(!doesExist){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Unable to mark inactive: " + input1 + " user does not exist in this tournament."
+                    });
+                } else if(isPlaying){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Cannot mark a user inactive while in the user is in a match."
+                    });
+                } else if(playerPool.indexOf(input1) < 0){
+                  bot.sendMessage({
+                      to: channelID,
+                      message: "User does not exist in player pool. Please use !active _username_"
+                  });
+                } else{
+                    if(playerPool.indexOf(input1) >= 0){
+                      var index = playerPool.indexOf(input1);
+                      if (index > -1){
+                        playerPool.splice(index, 1);
+
+                        inactive.push(input1);
+
+                        bot.sendMessage({
+                            to: channelID,
+                            message: input1 + " has been marked inactive."
+                        });
+                      }
+                    }
+                }
+                break;
+            case "active":
+                if(!isAdmin(userID)){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "You do not have permission to use this command."
+                    });
+                } else if(input1 == null){
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Incorrect input. Please use !active _username_"
+                    });
+                } else if(inactive.indexOf(input1) < 0){
+                  bot.sendMessage({
+                      to: channelID,
+                      message: "User does not exist in inactive pool. Please use !active _username_"
+                  });
+                } else{
+                  if(inactive.indexOf(input1) >= 0){
+                    var index = inactive.indexOf(input1);
+                    if (index > -1){
+                      inactive.splice(index, 1);
+
+                      playerPool.push(input1);
+
+                      bot.sendMessage({
+                          to: channelID,
+                          message: input1 + " has been added to the player pool."
+                      });
+                    }
+                  }
+                }
+                break;
+
             }
         }
 });
@@ -386,16 +483,29 @@ function isAdmin(userID){
 }
 
 function displayTeams(){
-  var str = "";
+  var str = "The first player of Team A should create the private lobby with name: swmatch# (# should be *replaced* with your match number)\n";
+  str += "                               Blue Team (A)                vs                Orange Team (B)\n";
   for(i = 0; i < teamMatchUp.length; i++){
-    str += "[" + teamMatchUp[i][0] + "]" + "  vs  " + "[" + teamMatchUp[i][1] + "]\n"
+    str += "**Match " + (i+1) + ")** [" + teamMatchUp[i][0] + "]" + "  vs  " + "[" + teamMatchUp[i][1] + "]\n"
   }
 
-  str += "\nBye-Round Players: "
-  for(i = 0; i < noTeams.length; i++){
-    str += "\n" + noTeams[i];
+  str += "\nPlyaer Pool: "
+  for(i = 0; i < playerPool.length; i++){
+    str += "\n" + playerPool[i];
   }
+
+  str +="\n\nIn-active Players: ";
+  for(i = 0; i < inactive.length; i++){
+    str += "\n" + inactive[i];
+  }
+
   return str;
+}
+
+function sortPoints(){
+  var sortable = [];
+  sortable = Object.keys(playerPoints).sort(function(a,b){return playerPoints[a]-playerPoints[b]});
+  return sortable;
 }
 
 function createMatchUp(){
@@ -411,17 +521,17 @@ function createMatchUp(){
 }
 
 function createTeams(){
-  shuffTeams = shuffle(noTeams);
+  shuffTeams = shuffle(playerPool);
 
-  while(noTeams.length >= teamSize){
-    var team = noTeams.splice(-teamSize);
+  while(playerPool.length >= teamSize){
+    var team = playerPool.splice(-teamSize);
     teams.push(team);
   }
 
   if(teams.length % 2 != 0){
     var leftOvers = teams.pop();
     for(i = 0; i < leftOvers.length; i++){
-      noTeams.push(leftOvers[i]);
+      playerPool.push(leftOvers[i]);
     }
   }
 }
