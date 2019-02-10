@@ -22,13 +22,14 @@ bot.on("ready", function (evt) {
 // For each tournament, change tournamentName, teamSize, and (maybe) admins
 // Magikarp: 122099645919789056, Axxxx: 482996996203085855, Ninja: 412703274165207041, Shadow: 267757061201199104, Alley: 461702728926625832
 var admins = [122099645919789056, 412703274165207041];
-var tournamentName = "Rocket League Switch Showdown!";
+var tournamentName = "Rocket League Discord Showdown!";
 var teamSize = 3;
 var playerUsername = [];
 var playerPoints = [];
 var tstatus = "Open Registration";
 var teams = [];
 var playerPool = [];
+var priorityPool = [];
 var teamMatchUp = [];
 var inactive = [];
 
@@ -484,7 +485,14 @@ function isAdmin(userID){
 
 function displayTeams(){
   var str = "The first player of Team A should create the private lobby with name: swmatch# (# should be *replaced* with your match number)\n";
-  str += "                               Blue Team (A)                vs                Orange Team (B)\n";
+  if(teamSize == 3){
+    str += "                               Blue Team (A)                vs                Orange Team (B)\n";
+  } else if(teamSize == 2){
+    str += "                         Blue Team (A)         vs         Orange Team (B)\n";
+  } else if(teamSize == 1){
+    str += "               Blue Team (A)   vs    Orange Team (B)\n";
+  }
+
   for(i = 0; i < teamMatchUp.length; i++){
     str += "**Match " + (i+1) + ")** [" + teamMatchUp[i][0] + "]" + "  vs  " + "[" + teamMatchUp[i][1] + "]\n"
   }
@@ -521,16 +529,27 @@ function createMatchUp(){
 }
 
 function createTeams(){
-  shuffTeams = shuffle(playerPool);
+  shuffle(playerPool);
+  for(i = 0; i < priorityPool.length; i++){
+      var index = playerPool.indexOf(priorityPool[i]);
+      playerPool.splice(index, 1);
+      playerPool.push(priorityPool[i]);
+  }
+  priorityPool = [];
 
   while(playerPool.length >= teamSize){
     var team = playerPool.splice(-teamSize);
     teams.push(team);
   }
 
+  for(i = 0; i < playerPool.length; i++){
+    priorityPool.push(playerPool[i]);
+  }
+
   if(teams.length % 2 != 0){
     var leftOvers = teams.pop();
     for(i = 0; i < leftOvers.length; i++){
+      priorityPool.push(leftOvers[i]);
       playerPool.push(leftOvers[i]);
     }
   }
