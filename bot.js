@@ -43,13 +43,25 @@ bot.on("message", function (user, userID, channelID, message, evt) {
         var input3 = args[3];
 
         switch(cmd) {
+            // Create fake users for testing purposes.
             case "make":
-                  for(i = 0; i < 28; i++){
-                    playerUsername[i] = "Player" + i;
-                    playerPoints[playerUsername[i]] = 0;
-                  }
+              if(!isAdmin(userID)){
+                  bot.sendMessage({
+                      to: channelID,
+                      message: "You do not have permission to use this command."
+                  });
+              } else{
+                for(i = 0; i < 28; i++){
+                  playerUsername[i] = "Player" + i;
+                  playerPoints[playerUsername[i]] = 0;
+                }
+                bot.sendMessage({
+                    to: channelID,
+                    message: "Test players created..."
+                });
+              }
+              break;
 
-                  break;
             // Display all commands
             case "commands":
                 bot.sendMessage({
@@ -102,12 +114,10 @@ bot.on("message", function (user, userID, channelID, message, evt) {
             // Check tournament status
             case "tournament-status":
                 var statusStr = "";
-                // Sorting does not work yet
-                var sortedArray = sortPoints();
+
                 for(i = 0; i < Object.size(playerUsername); i++){
-                    var sortedPlayer = sortedArray[i];
-                    statusStr += "\n" + sortedPlayer + ": " + playerPoints[sortedPlayer];
-                }
+                    statusStr += "\n" + Object.values(playerUsername)[i] + ": " + playerPoints[Object.values(playerUsername)[i]];
+}
 
                 bot.sendMessage({
                     to: channelID,
@@ -508,12 +518,6 @@ function displayTeams(){
   }
 
   return str;
-}
-
-function sortPoints(){
-  var sortable = [];
-  sortable = Object.keys(playerPoints).sort(function(a,b){return playerPoints[a]-playerPoints[b]});
-  return sortable;
 }
 
 function createMatchUp(){
